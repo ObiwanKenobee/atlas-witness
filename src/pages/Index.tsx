@@ -1,16 +1,73 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect, useState } from "react";
+import { TopBar } from "@/components/sanctum/TopBar";
+import { LivingMap } from "@/components/sanctum/LivingMap";
+import { SystemState } from "@/components/sanctum/SystemState";
+import { WitnessFeed } from "@/components/sanctum/WitnessFeed";
+import { FarmerDetail } from "@/components/sanctum/FarmerDetail";
+import { farms } from "@/data/farms";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.title = "Atlas Sanctum — Witness Dashboard";
+    const desc = "Live proof of regeneration: soil, water, yield, and farmer voice across the Nairobi peri-urban pilot.";
+    let m = document.querySelector('meta[name="description"]');
+    if (!m) { m = document.createElement("meta"); m.setAttribute("name", "description"); document.head.appendChild(m); }
+    m.setAttribute("content", desc);
+  }, []);
+
+  const selected = farms.find((f) => f.id === selectedId) ?? null;
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen">
+      <TopBar />
+      <main className="mx-auto max-w-[1600px] px-6 py-5">
+        <h1 className="sr-only">Atlas Sanctum Witness Dashboard</h1>
+
+        {/* Hero question */}
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">The living question</div>
+            <p className="mt-1 max-w-2xl text-2xl font-semibold leading-tight tracking-tight">
+              What is changing in <span className="text-regen" style={{ color: "hsl(var(--regen))" }}>reality</span> right now?
+            </p>
+          </div>
+          <div className="text-right text-[11px] text-muted-foreground">
+            <div>Pilot · Nairobi peri-urban cluster</div>
+            <div>Day 14 of 30 · 24 farms · 3 cohorts</div>
+          </div>
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-12">
+          {/* LEFT — Map */}
+          <div className="lg:col-span-4">
+            <div className="h-[640px]">
+              <LivingMap farms={farms} selectedId={selectedId} onSelect={setSelectedId} />
+            </div>
+          </div>
+
+          {/* CENTER — System state */}
+          <div className="lg:col-span-5">
+            <SystemState farms={farms} onSelect={setSelectedId} />
+          </div>
+
+          {/* RIGHT — Witness feed */}
+          <div className="lg:col-span-3">
+            <div className="h-[640px]">
+              <WitnessFeed onSelect={setSelectedId} />
+            </div>
+          </div>
+        </div>
+
+        <footer className="mt-8 border-t border-hairline pt-4 text-center text-[11px] text-muted-foreground">
+          Atlas Sanctum · Truth + Regeneration · "If a farmer cannot understand it in 30 seconds, it's too complex."
+        </footer>
+      </main>
+
+      <FarmerDetail farm={selected} onClose={() => setSelectedId(null)} />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
