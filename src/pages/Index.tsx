@@ -4,10 +4,14 @@ import { LivingMap } from "@/components/sanctum/LivingMap";
 import { SystemState } from "@/components/sanctum/SystemState";
 import { WitnessFeed } from "@/components/sanctum/WitnessFeed";
 import { FarmerDetail } from "@/components/sanctum/FarmerDetail";
-import { farms } from "@/data/farms";
+import { AlertsPanel } from "@/components/sanctum/AlertsPanel";
+import { FieldAgentCapture } from "@/components/sanctum/FieldAgentCapture";
+import { useSanctum } from "@/store/sanctumStore";
+import { Smartphone } from "lucide-react";
 
 const Index = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const farms = useSanctum((s) => s.farms);
 
   useEffect(() => {
     document.title = "Atlas Sanctum — Witness Dashboard";
@@ -33,9 +37,19 @@ const Index = () => {
               What is changing in <span className="text-regen" style={{ color: "hsl(var(--regen))" }}>reality</span> right now?
             </p>
           </div>
-          <div className="text-right text-[11px] text-muted-foreground">
-            <div>Pilot · Nairobi peri-urban cluster</div>
-            <div>Day 14 of 30 · 24 farms · 3 cohorts</div>
+          <div className="flex items-center gap-3">
+            <div className="text-right text-[11px] text-muted-foreground">
+              <div>Pilot · Nairobi peri-urban cluster</div>
+              <div>Day 14 of 30 · {farms.length} farms · 3 cohorts</div>
+            </div>
+            <FieldAgentCapture
+              trigger={
+                <button className="flex items-center gap-2 rounded-lg bg-gradient-regen px-3 py-2 text-xs font-semibold text-primary-foreground shadow-regen hover:brightness-110">
+                  <Smartphone className="h-3.5 w-3.5" />
+                  Field capture
+                </button>
+              }
+            />
           </div>
         </div>
 
@@ -58,6 +72,11 @@ const Index = () => {
               <WitnessFeed onSelect={setSelectedId} />
             </div>
           </div>
+        </div>
+
+        {/* Alerts band */}
+        <div className="mt-5">
+          <AlertsPanel onSelect={setSelectedId} />
         </div>
 
         <footer className="mt-8 border-t border-hairline pt-4 text-center text-[11px] text-muted-foreground">
