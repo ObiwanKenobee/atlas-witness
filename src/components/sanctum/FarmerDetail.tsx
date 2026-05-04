@@ -1,8 +1,11 @@
 import { Farm } from "@/data/farms";
 import { RegenLoop } from "./RegenLoop";
-import { ArrowRight, Check, Download, MapPin, Sprout, Wheat, X } from "lucide-react";
-import { useEffect } from "react";
-import { toast } from "sonner";
+import { ArrowRight, Check, Download, MapPin, Smartphone, Sprout, Wheat, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ProofCard } from "./ProofCard";
+import { TrendChart } from "./TrendChart";
+import { FieldAgentCapture } from "./FieldAgentCapture";
+import { useSanctum } from "@/store/sanctumStore";
 
 interface Props {
   farm: Farm | null;
@@ -22,6 +25,10 @@ const Stat = ({ label, value, sub, accent }: { label: string; value: React.React
 );
 
 export const FarmerDetail = ({ farm, onClose }: Props) => {
+  const trends = useSanctum((s) => (farm ? s.trends[farm.id] : undefined));
+  const [proofOpen, setProofOpen] = useState(false);
+  const [captureOpen, setCaptureOpen] = useState(false);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     if (farm) window.addEventListener("keydown", onKey);
@@ -31,12 +38,6 @@ export const FarmerDetail = ({ farm, onClose }: Props) => {
   if (!farm) return null;
   const tone = statusTone(farm.status);
   const soilDelta = farm.soilNow - farm.soilBefore;
-
-  const handleProof = () => {
-    toast.success("Proof generated", {
-      description: `${farm.farmer} · ${farm.id} · before/after evidence ready to share`,
-    });
-  };
 
   return (
     <div className="fixed inset-0 z-40">
@@ -65,13 +66,22 @@ export const FarmerDetail = ({ farm, onClose }: Props) => {
               <span>· Day {farm.daysInProgram}</span>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md border border-hairline p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            aria-label="Close detail"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCaptureOpen(true)}
+              className="hidden items-center gap-1.5 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[11px] hover:bg-surface-3 sm:flex"
+            >
+              <Smartphone className="h-3.5 w-3.5" style={{ color: "hsl(var(--regen))" }} />
+              Capture
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-md border border-hairline p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              aria-label="Close detail"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-5">
@@ -125,6 +135,19 @@ export const FarmerDetail = ({ farm, onClose }: Props) => {
 
           {/* Loop */}
           <RegenLoop farm={farm} />
+
+          {/* 30-day trends */}
+          {trends && (
+            <section>
+              <h3 className="mb-2 text-sm font-semibold">30-day trends</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <TrendChart data={trends} metric="rvs" title="RVS" />
+                <TrendChart data={trends} metric="soil" title="Soil score" />
+                <TrendChart data={trends} metric="moisture" title="Moisture" />
+                <TrendChart data={trends} metric="income" title="Income lift" />
+              </div>
+            </section>
+          )}
 
           {/* Interventions + Recommendation */}
           <section className="grid gap-3 md:grid-cols-2">
@@ -196,7 +219,7 @@ export const FarmerDetail = ({ farm, onClose }: Props) => {
         {/* PROOF BUTTON */}
         <footer className="border-t border-hairline bg-surface-2 p-4">
           <button
-            onClick={handleProof}
+            onClick={() => setProofOpen(true)}
             className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-gradient-regen px-4 py-3 text-sm font-semibold text-primary-foreground shadow-regen transition hover:brightness-110"
           >
             <Download className="h-4 w-4" />
@@ -208,6 +231,8 @@ export const FarmerDetail = ({ farm, onClose }: Props) => {
           </div>
         </footer>
       </aside>
+      <ProofCard farm={farm} open={proofOpen} onOpenChange={setProofOpen} />
+      <FieldAgentCapture defaultFarmId={farm.id} open={captureOpen} onOpenChange={setCaptureOpen} />
     </div>
   );
 };
