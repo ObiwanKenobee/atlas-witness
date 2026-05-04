@@ -1,5 +1,7 @@
 import { Droplets, Leaf, Repeat, Sprout, Coins, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { territoryMetrics, Farm } from "@/data/farms";
+import { Farm } from "@/data/farms";
+import { useSanctum, selectTerritoryMetrics } from "@/store/sanctumStore";
+import { TrendChart } from "./TrendChart";
 
 const Metric = ({
   icon, label, value, suffix, delta, accent,
@@ -32,7 +34,8 @@ const Metric = ({
 };
 
 export const SystemState = ({ farms, onSelect }: { farms: Farm[]; onSelect: (id: string) => void }) => {
-  const m = territoryMetrics;
+  const m = useSanctum(selectTerritoryMetrics);
+  const territoryTrend = useSanctum((s) => s.territoryTrend);
   const counts = farms.reduce(
     (acc, f) => ((acc[f.status] += 1), acc),
     { regenerating: 0, transitioning: 0, degraded: 0 } as Record<Farm["status"], number>,
@@ -51,6 +54,12 @@ export const SystemState = ({ farms, onSelect }: { farms: Farm[]; onSelect: (id:
         <Metric icon={<Droplets className="h-3.5 w-3.5" />} label="Water Retention" value={m.waterRetention} suffix="%" delta={m.waterDelta} accent="regen" />
         <Metric icon={<Coins className="h-3.5 w-3.5" />} label="Farmer Income Signal" value={`+${m.incomeSignal}`} suffix="%" delta={m.incomeDelta} accent="transition" />
         <Metric icon={<Repeat className="h-3.5 w-3.5" />} label="Regen Loop Active" value={m.loopActive} suffix="%" delta={m.loopDelta} accent="regen" />
+      </div>
+
+      {/* Territory 30-day trends */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TrendChart data={territoryTrend} metric="rvs" title="Territory RVS · 30d" subtitle="Composite signal across all farms" />
+        <TrendChart data={territoryTrend} metric="moisture" title="Water retention · 30d" subtitle="Avg soil moisture across cluster" />
       </div>
 
       {/* Status bar across territory */}

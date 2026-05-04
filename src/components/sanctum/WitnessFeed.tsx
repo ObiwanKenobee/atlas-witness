@@ -1,7 +1,9 @@
-import { witnessFeed } from "@/data/farms";
 import { AlertTriangle, CheckCircle2, MessageSquareQuote, Sparkles, TriangleAlert } from "lucide-react";
+import { useSanctum } from "@/store/sanctumStore";
 
-const kindMeta: Record<typeof witnessFeed[number]["kind"], { color: string; icon: React.ReactNode; label: string }> = {
+type FeedKind = "action" | "outcome" | "voice" | "alert" | "risk";
+
+const kindMeta: Record<FeedKind, { color: string; icon: React.ReactNode; label: string }> = {
   action:  { color: "hsl(var(--regen))",      icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: "Action" },
   outcome: { color: "hsl(var(--regen-glow))", icon: <Sparkles className="h-3.5 w-3.5" />,    label: "Outcome" },
   voice:   { color: "hsl(var(--transition))", icon: <MessageSquareQuote className="h-3.5 w-3.5" />, label: "Voice" },
@@ -10,6 +12,7 @@ const kindMeta: Record<typeof witnessFeed[number]["kind"], { color: string; icon
 };
 
 export const WitnessFeed = ({ onSelect }: { onSelect: (id: string) => void }) => {
+  const witnessFeed = useSanctum((s) => s.feed);
   return (
     <section className="flex h-full flex-col overflow-hidden rounded-xl border border-hairline bg-gradient-card shadow-elev">
       <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
