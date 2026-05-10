@@ -1,4 +1,5 @@
-import { useSyncExternalStore } from "react";
+import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { farms as seedFarms, witnessFeed as seedFeed, territoryMetrics as seedMetrics, Farm } from "@/data/farms";
 
 export type FeedKind = "action" | "outcome" | "voice" | "alert" | "risk";
@@ -105,7 +106,7 @@ const computeStatus = (rvs: number, soilDelta: number): Farm["status"] => {
 const trends0: Record<string, TrendPoint[]> = {};
 seedFarms.forEach((f) => (trends0[f.id] = buildTrend(f)));
 
-let state: State = {
+const initialState: State = {
   farms: seedFarms,
   feed: seedFeed.map((f, i) => ({ ...f, ts: Date.now() - i * 60_000 })),
   trends: trends0,
@@ -114,17 +115,13 @@ let state: State = {
   loopSyncTs: Date.now(),
 };
 
-/* -------- pub/sub -------- */
+const sanctumStore = create<State>(() => initialState);
+const getState = sanctumStore.getState;
+const setState = sanctumStore.setState;
 
-const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
-const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
-const getSnapshot = () => state;
-
-export const useSanctum = <T,>(selector: (s: State) => T): T => {
-  const snap = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  return selector(snap);
-};
+export function useSanctum<T>(selector: (s: State) => T): T {
+  return sanctumStore(useShallow(selector));
+}
 
 /* -------- actions -------- */
 
@@ -132,9 +129,9 @@ let feedCounter = 1000;
 const pushFeed = (item: Omit<FeedItem, "id" | "ts" | "time">) => {
   const ts = Date.now();
   const newItem: FeedItem = { ...item, id: ++feedCounter, ts, time: "just now" };
-  // re-stamp older items
-  const feed = [newItem, ...state.feed.slice(0, 40)].map((it) => ({ ...it, time: relTime(ts - it.ts) }));
-  state = { ...state, feed, loopSyncTs: ts };
+  const s = getState();
+  const feed = [newItem, ...s.feed.slice(0, 40)].map((it) => ({ ...it, time: relTime(ts - it.ts) }));
+  setState({ feed, loopSyncTs: ts });
 };
 
 const relTime = (ms: number) => {
@@ -149,15 +146,17 @@ const relTime = (ms: number) => {
 
 const refreshFeedTimes = () => {
   const now = Date.now();
-  state = { ...state, feed: state.feed.map((it) => ({ ...it, time: relTime(now - it.ts) })) };
-  emit();
+  const s = getState();
+  setState({ feed: s.feed.map((it) => ({ ...it, time: relTime(now - it.ts) })) });
 };
-setInterval(refreshFeedTimes, 15_000);
+if (typeof window !== "undefined") {
+  setInterval(refreshFeedTimes, 15_000);
+}
 
 export const submitFieldReport = (input: Omit<FieldSubmission, "id" | "ts">) => {
   const sub: FieldSubmission = { ...input, id: `S-${Date.now()}`, ts: Date.now() };
-
-  const farms = state.farms.map((f) => {
+  const s = getState();
+  const farms = s.farms.map((f) => {
     if (f.id !== sub.farmId) return f;
 
     // moisture delta drift toward submitted reading
@@ -191,7 +190,7 @@ export const submitFieldReport = (input: Omit<FieldSubmission, "id" | "ts">) => 
   });
 
   // append a synthetic data point to the trend (replace last day)
-  const trends = { ...state.trends };
+  const trends = { ...s.trends };
   const farm = farms.find((x) => x.id === sub.farmId);
   if (farm) {
     const series = trends[farm.id] ? [...trends[farm.id]] : buildTrend(farm);
@@ -206,7 +205,7 @@ export const submitFieldReport = (input: Omit<FieldSubmission, "id" | "ts">) => 
     trends[farm.id] = series;
   }
 
-  state = { ...state, farms, submissions: [sub, ...state.submissions], trends, territoryTrend: buildTerritoryTrend(trends) };
+  setState({ farms, submissions: [sub, ...s.submissions], trends, territoryTrend: buildTerritoryTrend(trends) });
 
   // feed events
   if (sub.intervention && sub.intervention !== "none") {
@@ -223,8 +222,6 @@ export const submitFieldReport = (input: Omit<FieldSubmission, "id" | "ts">) => 
   if (farm && farm.status === "degraded") {
     pushFeed({ farm: sub.farmId, kind: "risk", text: `Risk persists at ${sub.farmId} — needs urgent intervention` });
   }
-
-  emit();
 };
 
 const labelOf = (i: NonNullable<FieldSubmission["intervention"]>) =>
