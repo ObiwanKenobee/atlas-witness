@@ -121,8 +121,10 @@ const emit = () => listeners.forEach((l) => l());
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 const getSnapshot = () => state;
 
-export const useSanctum = <T,>(selector: (s: State) => T): T =>
-  useSyncExternalStore(subscribe, () => selector(getSnapshot()), () => selector(getSnapshot()));
+export const useSanctum = <T,>(selector: (s: State) => T): T => {
+  const snap = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return selector(snap);
+};
 
 /* -------- actions -------- */
 
